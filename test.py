@@ -3,6 +3,8 @@
 import argparse
 import sys
 import os
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
@@ -55,9 +57,10 @@ input_A = Tensor(opt.batchSize, opt.input_nc, opt.size, opt.size)
 input_B = Tensor(opt.batchSize, opt.output_nc, opt.size, opt.size)
 
 # Dataset loader
-transforms_ = [ transforms.ToTensor(),
+transforms_ = [ transforms.Resize([opt.size, opt.size], Image.BICUBIC),
+                transforms.ToTensor(),
                 transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
-dataloader = DataLoader(ImageDataset(rootA, rootA, transforms_=transforms_, mode='test'), 
+dataloader = DataLoader(ImageDataset(rootA, rootB, transforms_=transforms_, mode='test'), 
                         batch_size=opt.batchSize, shuffle=False, num_workers=opt.n_cpu)
 ###################################
 
@@ -71,9 +74,14 @@ if not os.path.exists('output/B'):
 
 for i, batch in enumerate(dataloader):
     # Set model input
+    print(batch['A'].shape)
     real_A = Variable(input_A.copy_(batch['A']))
     real_B = Variable(input_B.copy_(batch['B']))
-
+    
+    # Save image files
+    save_image(real_A, 'output/A/%04d.png' % (i+100))
+    save_image(real_B, 'output/B/%04d.png' % (i+100))
+    
     # Generate output
     fake_B = 0.5*(netG_A2B(real_A).data + 1.0)
     fake_A = 0.5*(netG_B2A(real_B).data + 1.0)
