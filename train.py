@@ -6,7 +6,8 @@ import itertools
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
-from PIL import Image
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 import torch
 
 from models import Generator
@@ -91,12 +92,13 @@ dataloader = DataLoader(ImageDataset(rootA, rootB, transforms_=transforms_, unal
                         batch_size=opt.batchSize, shuffle=True, num_workers=opt.n_cpu)
 
 # Loss plot
-logger = Logger(opt.n_epochs, len(dataloader))
+#logger = Logger(opt.n_epochs, len(dataloader))
 ###################################
 
 ###### Training ######
 for epoch in range(opt.epoch, opt.n_epochs):
     for i, batch in enumerate(dataloader):
+        print("epoch:{} batch_id:{}".format(epoch, i))
         # Set model input
         real_A = Variable(input_A.copy_(batch['A']))
         real_B = Variable(input_B.copy_(batch['B']))
@@ -171,12 +173,19 @@ for epoch in range(opt.epoch, opt.n_epochs):
         loss_D_B.backward()
 
         optimizer_D_B.step()
-        ###################################
 
+        
+        
+        ###################################
+        print("loss_g: {}".format(loss_G))
+        print("loss_DA: {} loss_DB: {}".format(loss_D_A, loss_D_B))
+        
         # Progress report (http://localhost:8097)
+        '''
         logger.log({'loss_G': loss_G, 'loss_G_identity': (loss_identity_A + loss_identity_B), 'loss_G_GAN': (loss_GAN_A2B + loss_GAN_B2A),
                     'loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB), 'loss_D': (loss_D_A + loss_D_B)}, 
                     images={'real_A': real_A, 'real_B': real_B, 'fake_A': fake_A, 'fake_B': fake_B})
+        '''
 
     # Update learning rates
     lr_scheduler_G.step()

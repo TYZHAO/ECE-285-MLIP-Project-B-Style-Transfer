@@ -3,7 +3,8 @@ import random
 import os
 
 from torch.utils.data import Dataset
-from PIL import Image
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 import torchvision.transforms as transforms
 
 class ImageDataset(Dataset):
