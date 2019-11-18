@@ -14,7 +14,7 @@ class ImageDataset(Dataset):
         with open(rootA) as f:
             self.files_A = f.read().splitlines()
         with open(rootB) as f:
-            self.files_B = f.read().splitlines();
+            self.files_B = f.read().splitlines()
 
     def __getitem__(self, index):
         item_A = self.transform(Image.open(self.files_A[index % len(self.files_A)]))
