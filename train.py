@@ -37,7 +37,7 @@ print(opt)
 
 class experiment():
     
-    def __init__(self, epoch=0, n_epochs=200, batchSize=1, lr=0.0002, decay_epoch=100, size=256, input_nc=3, output_nc=3, cuda=False, n_cpu=8):
+    def __init__(self, epoch=0, n_epochs=200, batchSize=1, lr=0.0002, decay_epoch=100, size=256, input_nc=3, output_nc=3, cuda=False, n_cpu=8, load_from_ckpt=False):
         
         self.epoch = epoch
         self.n_epochs = n_epochs
@@ -63,17 +63,24 @@ class experiment():
         self.netG_B2A = Generator(self.output_nc, self.input_nc)
         self.netD_A = Discriminator(self.input_nc)
         self.netD_B = Discriminator(self.output_nc)
-
+        
+        if load_from_ckpt:
+            print("loading from ckpt")
+            self.netG_A2B.load_state_dict(torch.load('output/self.netG_A2B.pth'))
+            self.netG_B2A.load_state_dict(torch.load('output/self.netG_B2A.pth'))
+            self.netD_A.load_state_dict(torch.load('output/self.netD_A.pth'))
+            self.netD_B.load_state_dict(torch.load('output/self.netD_B.pth'))
+        else:
+            self.netG_A2B.apply(weights_init_normal)
+            self.netG_B2A.apply(weights_init_normal)
+            self.netD_A.apply(weights_init_normal)
+            self.netD_B.apply(weights_init_normal)      
+            
         if self.cuda:
             self.netG_A2B.cuda()
             self.netG_B2A.cuda()
             self.netD_A.cuda()
             self.netD_B.cuda()
-
-        self.netG_A2B.apply(weights_init_normal)
-        self.netG_B2A.apply(weights_init_normal)
-        self.netD_A.apply(weights_init_normal)
-        self.netD_B.apply(weights_init_normal)
 
         # Lossess
         self.criterion_GAN = torch.nn.MSELoss()
@@ -101,7 +108,7 @@ class experiment():
         self.fake_B_buffer = ReplayBuffer()
 
         # Dataset loader
-        transforms_ = [ transforms.Resize(int(self.size*1.12), Image.BICUBIC), 
+        transforms_ = [ transforms.Resize((int(self.size*1.12), int(self.size*1.12)), Image.BICUBIC), 
                         transforms.RandomCrop(self.size), 
                         transforms.RandomHorizontalFlip(),
                         transforms.ToTensor(),
@@ -117,7 +124,7 @@ class experiment():
         ###### Training ######
         for epoch in range(self.epoch, self.n_epochs):
             for i, batch in enumerate(self.dataloader):
-                print("epoch:{} batch_id:{}".format(epoch, i))
+                
                 # Set model input
                 real_A = Variable(self.input_A.copy_(batch['A']))
                 real_B = Variable(self.input_B.copy_(batch['B']))
@@ -196,8 +203,10 @@ class experiment():
                 
                 
                 ###################################
-                print("loss_g: {}".format(loss_G))
-                print("loss_DA: {} loss_DB: {}".format(loss_D_A, loss_D_B))
+                if i%10 == 0:
+                    print("epoch:{} batch_id:{}".format(epoch, i))
+                    print("loss_g: {}".format(loss_G))
+                    print("loss_DA: {} loss_DB: {}".format(loss_D_A, loss_D_B))
                 
                 # Progress report (http://localhost:8097)
                 '''
