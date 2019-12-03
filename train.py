@@ -37,7 +37,7 @@ print(opt)
 
 class experiment():
     
-    def __init__(self, epoch=0, n_epochs=200, batchSize=1, lr=0.0002, decay_epoch=100, size=256, input_nc=3, output_nc=3, cuda=False, n_cpu=8, load_from_ckpt=False):
+    def __init__(self, epoch=0, n_epochs=200, batchSize=1, lr=0.0002, decay_epoch=100, size=256, input_nc=3, output_nc=3, cuda=True, n_cpu=8, load_from_ckpt=False):
         
         self.epoch = epoch
         self.n_epochs = n_epochs
@@ -52,7 +52,7 @@ class experiment():
 
 
         rootA = "./dataset/flickr_landscape"
-        rootB = "./dataset/artists/22"
+        rootB = "./dataset/Impressionism"
 
         if torch.cuda.is_available() and not self.cuda:
             print("WARNING: You have a CUDA device, so you should probably run with --cuda")
