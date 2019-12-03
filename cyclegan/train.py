@@ -51,8 +51,8 @@ class experiment():
         self. n_cpu = n_cpu
 
 
-        rootA = "./dataset/flickr_landscape"
-        rootB = "./dataset/Impressionism"
+        rootA = "/ECE-285-MLIP-Project-B-Style-Transfer/dataset/impression_landscape/flickr_landscape_train"
+        rootB = "/ECE-285-MLIP-Project-B-Style-Transfer/dataset/impression_landscape/Impressionism_train"
 
         if torch.cuda.is_available() and not self.cuda:
             print("WARNING: You have a CUDA device, so you should probably run with --cuda")
@@ -203,10 +203,10 @@ class experiment():
                 
                 
                 ###################################
-                if i%10 == 0:
+                if i%100 == 0:
                     print("epoch:{} batch_id:{}".format(epoch, i))
-                    print("loss_g: {}".format(loss_G))
-                    print("loss_DA: {} loss_DB: {}".format(loss_D_A, loss_D_B))
+                    print("loss_g: {:.4f}".format(loss_G))
+                    print("loss_DA: {:.4f} loss_DB: {:.4f}".format(loss_D_A, loss_D_B))
                 
                 # Progress report (http://localhost:8097)
                 '''
@@ -214,6 +214,10 @@ class experiment():
                             'loss_G_cycle': (loss_cycle_ABA + loss_cycle_BAB), 'loss_D': (loss_D_A + loss_D_B)}, 
                             images={'real_A': real_A, 'real_B': real_B, 'fake_A': fake_A, 'fake_B': fake_B})
                 '''
+
+            
+            # test
+            self.test(netG_A2B, netG_B2A, epoch)
 
             # Update learning rates
             self.lr_scheduler_G.step()
@@ -225,4 +229,55 @@ class experiment():
             torch.save(self.netG_B2A.state_dict(), 'output/self.netG_B2A.pth')
             torch.save(self.netD_A.state_dict(), 'output/self.netD_A.pth')
             torch.save(self.netD_B.state_dict(), 'output/self.netD_B.pth')
+        ###################################
+
+    def test(self, netG_A2B, netG_B2A, epoch):
+
+        test_rootA = "/ECE-285-MLIP-Project-B-Style-Transfer/dataset/impression_landscape/flickr_landscape_test"
+        test_rootB = "/ECE-285-MLIP-Project-B-Style-Transfer/dataset/impression_landscape/Impressionism_test"
+
+        netG_A2B.eval()
+        netG_B2A.eval()
+
+        # Inputs & targets memory allocation
+        Tensor = torch.cuda.FloatTensor if opt.cuda else torch.Tensor
+        input_A = Tensor(opt.batchSize, opt.input_nc, opt.size, opt.size)
+        input_B = Tensor(opt.batchSize, opt.output_nc, opt.size, opt.size)
+
+        # Dataset loader
+        transforms_ = [ transforms.Resize([opt.size, opt.size], Image.BICUBIC),
+                        transforms.ToTensor(),
+                        transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
+        dataloader = DataLoader(ImageDataset(test_rootA, test_rootB, transforms_=transforms_), 
+                                batch_size=opt.batchSize, shuffle=False, num_workers=opt.n_cpu)
+        ###################################
+
+        ###### Testing######
+
+        # Create output dirs if they don't exist
+        if not os.path.exists('output/A'):
+            os.makedirs('output/A')
+        if not os.path.exists('output/B'):
+            os.makedirs('output/B')
+
+        for i, batch in enumerate(dataloader):
+            # Set model input
+            real_A = Variable(input_A.copy_(batch['A']))
+            real_B = Variable(input_B.copy_(batch['B']))
+            
+            # Save image files
+            save_image(real_A, 'output/A/epoch{}_real{}.png'.format(epoch, i))
+            save_image(real_B, 'output/B/epoch{}_real{}.png'.format(epoch, i))
+            
+            # Generate output
+            fake_B = 0.5*(netG_A2B(real_A).data + 1.0)
+            fake_A = 0.5*(netG_B2A(real_B).data + 1.0)
+
+            # Save image files
+            save_image(fake_A, 'output/A/epoch{}_fake{}.png'.format(epoch, i))
+            save_image(fake_B, 'output/B/epoch{}_fake{}.png'.format(epoch, i))
+
+            sys.stdout.write('\rGenerated images %04d of %04d' % (i+1, len(dataloader)))
+
+        sys.stdout.write('\n')
         ###################################
