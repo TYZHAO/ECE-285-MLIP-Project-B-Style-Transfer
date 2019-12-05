@@ -25,7 +25,7 @@ from torchvision.utils import save_image
 
 class experiment():
     
-    def __init__(self, epoch=0, n_epochs=200, batchSize=1, lr=0.0002, decay_epoch=100, size=256, input_nc=3, output_nc=3, cuda=True, n_cpu=8, load_from_ckpt=False):
+    def __init__(self, epoch=0, n_epochs=1000, batchSize=1, lr=0.0002, decay_epoch=100, size=256, input_nc=3, output_nc=3, cuda=True, n_cpu=8, load_from_ckpt=False):
         
         self.epoch = epoch
         self.n_epochs = n_epochs

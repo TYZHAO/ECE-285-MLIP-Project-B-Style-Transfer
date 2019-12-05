@@ -80,11 +80,10 @@ for i, batch in enumerate(dataloader):
     # Set model input
     real_A = Variable(input_A.copy_(batch['A']))
     real_B = Variable(input_B.copy_(batch['B']))
-
+    
     # Save image files
-    save_image(real_A, 'output/A/real{}.png'.format(i))
-    save_image(real_B, 'output/B/real{}.png'.format(i))
-
+    save_image(0.5*(real_A+1.0), 'output/A/real{}.png'.format(i))
+    save_image(0.5*(real_B+1.0), 'output/B/real{}.png'.format(i))
 
     # Generate output
     fake_B = 0.5*(netG_A2B(real_A).data + 1.0)
