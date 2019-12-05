@@ -2,6 +2,9 @@
 
 import argparse
 import itertools
+import os
+import sys
+from time import gmtime, strftime
 
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
@@ -18,22 +21,7 @@ from utils import Logger
 from utils import weights_init_normal
 from datasets import ImageDataset
 
-'''
-parser = argparse.ArgumentParser()
-parser.add_argument('--epoch', type=int, default=0, help='starting epoch')
-parser.add_argument('--n_epochs', type=int, default=200, help='number of epochs of training')
-parser.add_argument('--batchSize', type=int, default=1, help='size of the batches')
-parser.add_argument('--dataroot', type=str, default='datasets/horse2zebra/', help='root directory of the dataset')
-parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
-parser.add_argument('--decay_epoch', type=int, default=100, help='epoch to start linearly decaying the learning rate to 0')
-parser.add_argument('--size', type=int, default=256, help='size of the data crop (squared assumed)')
-parser.add_argument('--input_nc', type=int, default=3, help='number of channels of input data')
-parser.add_argument('--output_nc', type=int, default=3, help='number of channels of output data')
-parser.add_argument('--cuda', action='store_true', help='use GPU computation')
-parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during batch generation')
-opt = parser.parse_args()
-print(opt)
-'''
+from torchvision.utils import save_image
 
 class experiment():
     
@@ -51,8 +39,8 @@ class experiment():
         self. n_cpu = n_cpu
 
 
-        rootA = "/ECE-285-MLIP-Project-B-Style-Transfer/dataset/impression_landscape/flickr_landscape_train"
-        rootB = "/ECE-285-MLIP-Project-B-Style-Transfer/dataset/impression_landscape/Impressionism_train"
+        rootA = "../dataset/monet_train"
+        rootB = "../dataset/landscape_train"
 
         if torch.cuda.is_available() and not self.cuda:
             print("WARNING: You have a CUDA device, so you should probably run with --cuda")
@@ -66,10 +54,10 @@ class experiment():
         
         if load_from_ckpt:
             print("loading from ckpt")
-            self.netG_A2B.load_state_dict(torch.load('output/self.netG_A2B.pth'))
-            self.netG_B2A.load_state_dict(torch.load('output/self.netG_B2A.pth'))
-            self.netD_A.load_state_dict(torch.load('output/self.netD_A.pth'))
-            self.netD_B.load_state_dict(torch.load('output/self.netD_B.pth'))
+            self.netG_A2B.load_state_dict(torch.load('output/netG_A2B.pth'))
+            self.netG_B2A.load_state_dict(torch.load('output/netG_B2A.pth'))
+            self.netD_A.load_state_dict(torch.load('output/netD_A.pth'))
+            self.netD_B.load_state_dict(torch.load('output/netD_B.pth'))
         else:
             self.netG_A2B.apply(weights_init_normal)
             self.netG_B2A.apply(weights_init_normal)
@@ -97,6 +85,23 @@ class experiment():
         self.lr_scheduler_D_A = torch.optim.lr_scheduler.LambdaLR(self.optimizer_D_A, lr_lambda=LambdaLR(self.n_epochs, self.epoch, self.decay_epoch).step)
         self.lr_scheduler_D_B = torch.optim.lr_scheduler.LambdaLR(self.optimizer_D_B, lr_lambda=LambdaLR(self.n_epochs, self.epoch, self.decay_epoch).step)
 
+        if load_from_ckpt:
+            print('load states')
+            checkpoint = torch.load('output/states.pth')
+            '''
+            self.optimizer_G.load_state_dict(checkpoint['optimizer_G'])
+            self.optimizer_D_A.load_state_dict(checkpoint['optimizer_D_A'])
+            self.optimizer_D_B.load_state_dict(checkpoint['optimizer_D_B'])
+            
+            self.lr_scheduler_G.load_state_dict(checkpoint['lr_scheduler_G'])
+            self.lr_scheduler_D_A.load_state_dict(checkpoint['lr_scheduler_D_A'])
+            self.lr_scheduler_D_B.load_state_dict(checkpoint['lr_scheduler_D_B'])
+            '''
+            
+            self.lr = checkpoint['lr']
+            self.epoch = checkpoint['epoch']+1
+            
+        
         # Inputs & targets memory allocation
         Tensor = torch.cuda.FloatTensor if self.cuda else torch.Tensor
         self.input_A = Tensor(self.batchSize, self.input_nc, self.size, self.size)
@@ -204,9 +209,12 @@ class experiment():
                 
                 ###################################
                 if i%100 == 0:
-                    print("epoch:{} batch_id:{}".format(epoch, i))
-                    print("loss_g: {:.4f}".format(loss_G))
-                    print("loss_DA: {:.4f} loss_DB: {:.4f}".format(loss_D_A, loss_D_B))
+                    text = [strftime("%Y-%m-%d %H:%M:%S", gmtime()), "epoch:{} batch_id:{}".format(epoch, i), "loss_g: {:.4f}".format(loss_G), "loss_DA: {:.4f} loss_DB: {:.4f}".format(loss_D_A, loss_D_B)]
+                    with open('logs.txt', 'a') as f:
+                        for t in text:
+                            print(t)
+                            f.write(t+'\n')
+                        
                 
                 # Progress report (http://localhost:8097)
                 '''
@@ -217,7 +225,7 @@ class experiment():
 
             
             # test
-            self.test(netG_A2B, netG_B2A, epoch)
+            # self.test(self.netG_A2B, self.netG_B2A, epoch)
 
             # Update learning rates
             self.lr_scheduler_G.step()
@@ -225,31 +233,34 @@ class experiment():
             self.lr_scheduler_D_B.step()
 
             # Save models checkpoints
-            torch.save(self.netG_A2B.state_dict(), 'output/self.netG_A2B.pth')
-            torch.save(self.netG_B2A.state_dict(), 'output/self.netG_B2A.pth')
-            torch.save(self.netD_A.state_dict(), 'output/self.netD_A.pth')
-            torch.save(self.netD_B.state_dict(), 'output/self.netD_B.pth')
+            torch.save(self.netG_A2B.state_dict(), 'output/netG_A2B.pth')
+            torch.save(self.netG_B2A.state_dict(), 'output/netG_B2A.pth')
+            torch.save(self.netD_A.state_dict(), 'output/netD_A.pth')
+            torch.save(self.netD_B.state_dict(), 'output/netD_B.pth')
+            torch.save({'epoch': epoch, 
+                        'lr':self.lr}, 'output/states.pth')
+            
         ###################################
 
     def test(self, netG_A2B, netG_B2A, epoch):
 
-        test_rootA = "/ECE-285-MLIP-Project-B-Style-Transfer/dataset/impression_landscape/flickr_landscape_test"
-        test_rootB = "/ECE-285-MLIP-Project-B-Style-Transfer/dataset/impression_landscape/Impressionism_test"
+        test_rootA = "../dataset/impression_landscape/flickr_landscape_test"
+        test_rootB = "../dataset/impression_landscape/Impressionism_test"
 
         netG_A2B.eval()
         netG_B2A.eval()
 
         # Inputs & targets memory allocation
-        Tensor = torch.cuda.FloatTensor if opt.cuda else torch.Tensor
-        input_A = Tensor(opt.batchSize, opt.input_nc, opt.size, opt.size)
-        input_B = Tensor(opt.batchSize, opt.output_nc, opt.size, opt.size)
+        Tensor = torch.cuda.FloatTensor if self.cuda else torch.Tensor
+        input_A = Tensor(1, self.input_nc, self.size, self.size)
+        input_B = Tensor(1, self.output_nc, self.size, self.size)
 
         # Dataset loader
-        transforms_ = [ transforms.Resize([opt.size, opt.size], Image.BICUBIC),
+        transforms_ = [ transforms.Resize([self.size, self.size], Image.BICUBIC),
                         transforms.ToTensor(),
                         transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
         dataloader = DataLoader(ImageDataset(test_rootA, test_rootB, transforms_=transforms_), 
-                                batch_size=opt.batchSize, shuffle=False, num_workers=opt.n_cpu)
+                                batch_size=1, shuffle=False, num_workers=self.n_cpu)
         ###################################
 
         ###### Testing######
@@ -266,13 +277,15 @@ class experiment():
             real_B = Variable(input_B.copy_(batch['B']))
             
             # Save image files
-            save_image(real_A, 'output/A/epoch{}_real{}.png'.format(epoch, i))
-            save_image(real_B, 'output/B/epoch{}_real{}.png'.format(epoch, i))
+            
+            save_image(real_A, 'output/A/real{}.png'.format(i))
+            save_image(real_B, 'output/B/real{}.png'.format(i))
+            
             
             # Generate output
             fake_B = 0.5*(netG_A2B(real_A).data + 1.0)
             fake_A = 0.5*(netG_B2A(real_B).data + 1.0)
-
+            
             # Save image files
             save_image(fake_A, 'output/A/epoch{}_fake{}.png'.format(epoch, i))
             save_image(fake_B, 'output/B/epoch{}_fake{}.png'.format(epoch, i))

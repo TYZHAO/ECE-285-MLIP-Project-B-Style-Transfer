@@ -15,8 +15,25 @@ import torch
 from models import Generator
 from datasets import ImageDataset
 
-rootA = "/ECE-285-MLIP-Project-B-Style-Transfer/dataset/impression_landscape/flickr_landscape_test"
-rootB = "/ECE-285-MLIP-Project-B-Style-Transfer/dataset/impression_landscape/Impressionism_test"
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--epoch', type=int, default=0, help='starting epoch')
+parser.add_argument('--n_epochs', type=int, default=200, help='number of epochs of training')
+parser.add_argument('--batchSize', type=int, default=1, help='size of the batches')
+parser.add_argument('--dataroot', type=str, default='datasets/horse2zebra/', help='root directory of the dataset')
+parser.add_argument('--lr', type=float, default=0.0002, help='initial learning rate')
+parser.add_argument('--decay_epoch', type=int, default=100, help='epoch to start linearly decaying the learning rate to 0')
+parser.add_argument('--size', type=int, default=256, help='size of the data crop (squared assumed)')
+parser.add_argument('--input_nc', type=int, default=3, help='number of channels of input data')
+parser.add_argument('--output_nc', type=int, default=3, help='number of channels of output data')
+parser.add_argument('--cuda', action='store_true', help='use GPU computation')
+parser.add_argument('--n_cpu', type=int, default=8, help='number of cpu threads to use during batch generation')
+opt = parser.parse_args()
+print(opt)
+
+
+rootA = "../dataset/monet_test"
+rootB = "../dataset/landscape_test"
 
 if torch.cuda.is_available() and not opt.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
@@ -31,8 +48,8 @@ if opt.cuda:
     netG_B2A.cuda()
 
 # Load state dicts
-netG_A2B.load_state_dict(torch.load(opt.generator_A2B))
-netG_B2A.load_state_dict(torch.load(opt.generator_B2A))
+netG_A2B.load_state_dict(torch.load('output/netG_A2B.pth'))
+netG_B2A.load_state_dict(torch.load('output/netG_B2A.pth'))
 
 # Set model's test mode
 netG_A2B.eval()
@@ -47,7 +64,7 @@ input_B = Tensor(opt.batchSize, opt.output_nc, opt.size, opt.size)
 transforms_ = [ transforms.Resize([opt.size, opt.size], Image.BICUBIC),
                 transforms.ToTensor(),
                 transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
-dataloader = DataLoader(ImageDataset(rootA, rootB, transforms_=transforms_, mode='test'), 
+dataloader = DataLoader(ImageDataset(rootA, rootB, transforms_=transforms_, unaligned=False), 
                         batch_size=opt.batchSize, shuffle=False, num_workers=opt.n_cpu)
 ###################################
 
@@ -61,21 +78,21 @@ if not os.path.exists('output/B'):
 
 for i, batch in enumerate(dataloader):
     # Set model input
-    print(batch['A'].shape)
     real_A = Variable(input_A.copy_(batch['A']))
     real_B = Variable(input_B.copy_(batch['B']))
-    
+
     # Save image files
-    save_image(real_A, 'output/A/%04d.png' % (i+100))
-    save_image(real_B, 'output/B/%04d.png' % (i+100))
-    
+    save_image(real_A, 'output/A/real{}.png'.format(i))
+    save_image(real_B, 'output/B/real{}.png'.format(i))
+
+
     # Generate output
     fake_B = 0.5*(netG_A2B(real_A).data + 1.0)
     fake_A = 0.5*(netG_B2A(real_B).data + 1.0)
 
     # Save image files
-    save_image(fake_A, 'output/A/%04d.png' % (i+1))
-    save_image(fake_B, 'output/B/%04d.png' % (i+1))
+    save_image(fake_A, 'output/A/fake{}.png'.format(i))
+    save_image(fake_B, 'output/B/fake{}.png'.format(i))
 
     sys.stdout.write('\rGenerated images %04d of %04d' % (i+1, len(dataloader)))
 
