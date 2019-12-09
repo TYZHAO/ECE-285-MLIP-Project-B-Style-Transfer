@@ -8,9 +8,15 @@ run the demo, you will only need the timg.jpg (as your original image) in the ro
 
 ## Code organization
 <pre>
-dataset------------------------------Folder contains the target style images' addresses
-Baseline.ipynb ----------------- Run a demo of our code (reproduce image(f) in figure 1 of our report)
-timg.jpg-----------------------------The original image. Used to be transfered to any style you like.
+cyclegan---------------------------------Contains all the codes.
+  dataset.py-----------------------------Contains the dataset function
+  models.py------------------------------Contains all models
+  run.py---------------------------------Manage the training
+  test.py--------------------------------Generte result based on saved checkpoints 
+  train.ipynb----------------------------ipython version of run.py
+  train.py-------------------------------Contains an experiment class
+  utils.py-------------------------------Other functions
+datasets---------------------------------folder contains all the datasets
 </pre>
 
 ## Enjoy!
