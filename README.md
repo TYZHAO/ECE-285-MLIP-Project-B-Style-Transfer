@@ -1,4 +1,4 @@
-# ECE285 Final Project 
+# ECE285 Final Project B - Style Transfer
 ## Description
 This is project Style Transfer developed by team Team Name. This branch is the implementation of Leon Gatys's paper.
 
