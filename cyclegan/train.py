@@ -39,8 +39,8 @@ class experiment():
         self. n_cpu = n_cpu
 
 
-        rootA = "../dataset/monet_train"
-        rootB = "../dataset/landscape_train"
+        rootA = "../dataset/monet_field_data"
+        rootB = "../dataset/field_data"
 
         if torch.cuda.is_available() and not self.cuda:
             print("WARNING: You have a CUDA device, so you should probably run with --cuda")
@@ -242,11 +242,26 @@ class experiment():
             
         ###################################
 
-    def test(self, netG_A2B, netG_B2A, epoch):
+    def test(self, rootA, rootB, netG_A2B_path, netG_B2A_path, target_A, target_B):
+        '''
+        rootA = "../dataset/monet_field_data"
+        rootB = "../dataset/landscape_test"
+        '''
 
-        test_rootA = "../dataset/impression_landscape/flickr_landscape_test"
-        test_rootB = "../dataset/impression_landscape/Impressionism_test"
+        ###### Definition of variables ######
+        # Networks
+        netG_A2B = Generator(self.input_nc, self.output_nc)
+        netG_B2A = Generator(self.output_nc, self.input_nc)
 
+        if self.cuda:
+            netG_A2B.cuda()
+            netG_B2A.cuda()
+
+        # Load state dicts
+        netG_A2B.load_state_dict(torch.load(netG_A2B_path))
+        netG_B2A.load_state_dict(torch.load(netG_B2A_path))
+
+        # Set model's test mode
         netG_A2B.eval()
         netG_B2A.eval()
 
@@ -259,36 +274,33 @@ class experiment():
         transforms_ = [ transforms.Resize([self.size, self.size], Image.BICUBIC),
                         transforms.ToTensor(),
                         transforms.Normalize((0.5,0.5,0.5), (0.5,0.5,0.5)) ]
-        dataloader = DataLoader(ImageDataset(test_rootA, test_rootB, transforms_=transforms_), 
+        dataloader = DataLoader(ImageDataset(rootA, rootB, transforms_=transforms_, unaligned=False), 
                                 batch_size=1, shuffle=False, num_workers=self.n_cpu)
-        ###################################
 
         ###### Testing######
 
         # Create output dirs if they don't exist
-        if not os.path.exists('output/A'):
-            os.makedirs('output/A')
-        if not os.path.exists('output/B'):
-            os.makedirs('output/B')
+        if not os.path.exists(target_A):
+            os.makedirs(target_A)
+        if not os.path.exists(target_B):
+            os.makedirs(target_B)
 
         for i, batch in enumerate(dataloader):
             # Set model input
             real_A = Variable(input_A.copy_(batch['A']))
             real_B = Variable(input_B.copy_(batch['B']))
-            
+
             # Save image files
-            
-            save_image(real_A, 'output/A/real{}.png'.format(i))
-            save_image(real_B, 'output/B/real{}.png'.format(i))
-            
-            
+            save_image(0.5*(real_A+1.0), target_A+'/real{}.png'.format(i))
+            save_image(0.5*(real_B+1.0), target_B+'/real{}.png'.format(i))
+
             # Generate output
             fake_B = 0.5*(netG_A2B(real_A).data + 1.0)
             fake_A = 0.5*(netG_B2A(real_B).data + 1.0)
-            
+
             # Save image files
-            save_image(fake_A, 'output/A/epoch{}_fake{}.png'.format(epoch, i))
-            save_image(fake_B, 'output/B/epoch{}_fake{}.png'.format(epoch, i))
+            save_image(fake_A, target_A+'/fake{}.png'.format(i))
+            save_image(fake_B, target_B+'/fake{}.png'.format(i))
 
             sys.stdout.write('\rGenerated images %04d of %04d' % (i+1, len(dataloader)))
 

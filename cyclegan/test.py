@@ -32,7 +32,7 @@ opt = parser.parse_args()
 print(opt)
 
 
-rootA = "../dataset/monet_test"
+rootA = "../dataset/monet_field_data"
 rootB = "../dataset/landscape_test"
 
 if torch.cuda.is_available() and not opt.cuda:
