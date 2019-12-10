@@ -9,6 +9,8 @@ run the demo, you will only need the timg.jpg (as your original image) in the ro
 ## Code organization
 <pre>
 cyclegan---------------------------------Contains all the codes.
+  output---------------------------------Folder contains all pretrained models and generated output images.
+  demo.ipynb-----------------------------Demo of Cycle-GAN 
   dataset.py-----------------------------Contains the dataset function
   models.py------------------------------Contains all models
   run.py---------------------------------Manage the training
@@ -16,8 +18,12 @@ cyclegan---------------------------------Contains all the codes.
   train.ipynb----------------------------ipython version of run.py
   train.py-------------------------------Contains an experiment class
   utils.py-------------------------------Other functions
-datasets---------------------------------folder contains all the datasets
+datasets---------------------------------Folder contains all the datasets
+  test-----------------------------------Folder contains all testing data
+    cb-----------------------------------Cubism paintings
+    monet--------------------------------Monet paintings
+    vg-----------------------------------Van Gogh paintings
+    point--------------------------------Pointillism paintings
+    photo--------------------------------Landscape photographs
 </pre>
-
-## Enjoy!
                               
