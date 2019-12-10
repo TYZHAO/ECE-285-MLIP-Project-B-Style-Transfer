@@ -4,7 +4,7 @@ This is project Style Transfer developed by team Team Name. This branch is the i
 
 ## Requirement
 To run the demo, open cyclegan/demo.ipynb with jupyter notebook on a GPU node. It will automatically generate the transfer results of all 4 differenet styles mentioned in the report. Note that every checkpoint in cyclegan/output is needed.
-To train the model, run cyclegan/run.py in terminal or run cyclegan/train.ipynb in jupyter notebook on a GPU node. Note that all training data are refined, so please download data in datasets/.
+To train the model, run cyclegan/run.py in terminal or run cyclegan/train.ipynb in jupyter notebook on a GPU node. Note that all training data are refined, so please download data in datasets/. If we upload all data for all 4 styles the repo would be too large, so we only upload the Monet one. 
 
 ## Code organization
 <pre>
